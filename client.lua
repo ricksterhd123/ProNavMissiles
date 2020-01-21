@@ -52,16 +52,12 @@ end
 local missiles = {}
 
 function createProjectile(creator, target, x, y, z)
-    if element == getPedOccupiedVehicle(localPlayer) then
-        local p = createProjectile(localPlayer, 20, x, y, z)
-        missiles[element]= {p}
-    end
+    local p = createProjectile(creator, 20, x, y, z)
+    missiles[element] = p
 end
 
 local function update(deltaTime)
-    for target, missileData in pairs(missiles) do
-        local missile = missileData[1]
-
+    for target, missile in pairs(missiles) do
         if target and missile and isElement(missile) then
             local acceleration = proportionalNavigation(missile, target, 5)
             setElementVelocity(missile, missileVelocity + acceleration)
