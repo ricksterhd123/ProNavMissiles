@@ -61,7 +61,6 @@ end
 local function update(deltaTime)
     for target, missileData in pairs(missiles) do
         local missile = missileData[1]
-        local start = missileData[2]
 
         if target and missile and isElement(missile) then
             local acceleration = proportionalNavigation(missile, target, 5)
