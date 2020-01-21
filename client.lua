@@ -65,9 +65,7 @@ local function update(deltaTime)
 
         if target and missile and isElement(missile) and getTickCount() - start >= 1000 then
             local acceleration = proportionalNavigation(missile, target, 5)
-            iprint("a", acceleration:getLength())
-            iprint(missileVelocity:getLength())
-            setElementVelocity(missile, missileVelocity + acceleration * deltaTime / 1000)
+            setElementVelocity(missile, missileVelocity + acceleration)
             setProjectileMatrix(missile, missileVelocity)
         end
     end
