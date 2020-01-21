@@ -51,7 +51,7 @@ end
 
 local missiles = {}
 
-function createProjectile(creator, target, x, y, z)
+function createMissile(creator, target, x, y, z)
     local p = createProjectile(creator, 20, x, y, z)
     missiles[element] = p
 end
