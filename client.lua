@@ -54,7 +54,7 @@ local missiles = {}
 function createProjectile(creator, target, x, y, z)
     if element == getPedOccupiedVehicle(localPlayer) then
         local p = createProjectile(localPlayer, 20, x, y, z)
-        missiles[element]= {p, getTickCount()}
+        missiles[element]= {p}
     end
 end
 
@@ -63,7 +63,7 @@ local function update(deltaTime)
         local missile = missileData[1]
         local start = missileData[2]
 
-        if target and missile and isElement(missile) and getTickCount() - start >= 1000 then
+        if target and missile and isElement(missile) then
             local acceleration = proportionalNavigation(missile, target, 5)
             setElementVelocity(missile, missileVelocity + acceleration)
             setProjectileMatrix(missile, missileVelocity)
