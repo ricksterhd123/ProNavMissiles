@@ -65,4 +65,4 @@ local function update(deltaTime)
         end
     end
 end
-addEventHandler("onClientPreRender", root, render)
+addEventHandler("onClientPreRender", root, update)
