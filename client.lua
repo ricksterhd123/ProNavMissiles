@@ -1,9 +1,10 @@
 local missiles = {}
 
 function createMissile(creator, posX, posY, posZ, force, target, rotX, rotY, rotZ, velX, velY, velZ, model)
-    local projectile = createProjectile(creator, 20, posX, posY, posZ, force, target, rotX, rotY, rotZ, velX, velY velZ, model)
+    local projectile = createProjectile(creator, 20, posX, posY, posZ, force, target, rotX, rotY, rotZ, velX, velY, velZ, model)
     if projectile then
-        missiles[projectile] = target                    
+        -- missiles[projectile] = target                    
+        -- setElementVelocity(projectile, projectile.velocity.x or velX, projectile.velocity.y or velY, projectile.velocity.z or velZ)
     end
     return projectile
 end
@@ -29,7 +30,7 @@ local function LOSRate(rm, rt, vm, vt)
 end
 
 -- Calculates the acceleration needed to hit the target, i.e. command acceleration
-local function proportionalNavigation(missilePosition, missileVelocity, targetPosition, targetVelocity, NAV_CONST)
+local function proportionalNavigation(missilePosition, missileVelocity, targetPosition, targetVelocity, NAV_CONST, deltaTime)
     -- Get the parameters for calculating LOS rate between missile and target
     local closingVelocity = missileVelocity - targetVelocity
     local x, y, z = missilePosition.x, missilePosition.y, missilePosition.z
@@ -44,22 +45,22 @@ local function proportionalNavigation(missilePosition, missileVelocity, targetPo
     --       T  = Time in 1/50 seconds
 
     -- calculate dλ/dT
-    local LOSRate = LOSRate({x, y, z}, {px, py, pz}, {vx, vy, vz}, {pvx, pvy, pvz}) * deltaTime/20  -- i.e, 1000/50 = 20
+    local LOSRate = LOSRate({x, y, z}, {px, py, pz}, {vx, vy, vz}, {pvx, pvy, pvz})
+    LOSRate = Vector3(unpack(LOSRate))
     -- return command
-    return NAV_CONST * closingVelocity:getLength() * Vector3(unpack(LOSRate))
+    return NAV_CONST * closingVelocity:getLength() * LOSRate
 end
 
 -- Utility function which makes the projectile p face towards vector forward.
 local function setProjectileMatrix(projectile, forward)
     forward = -forward:getNormalized()
-    forward = Vector3(forward.x, forward.y, - forward.z)
+    forward.z = -forward.z
     local up = Vector3(0, 0, 1)
     local left = forward:cross(up)
-
     local ux, uy, uz = left.x, left.y, left.z
     local vx, vy, vz = forward.x, forward.y, forward.z
     local wx, wy, wz = up.x, up.y, up.z
-    local x, y, z = projectile.position
+    local x, y, z = projectile.position.x, projectile.position.y, projectile.position.z
 
     setElementMatrix(projectile, {{ux, uy, uz, 0}, {vx, vy, vz, 0}, {wx, wy, wz, 0}, {x, y, z, 1}})
     return true
@@ -70,7 +71,7 @@ end
 local function syncMissiles(creator)
     local projectile = source
 
-    if projectile and projecitle.type == 20 and projectile.target and creator then
+    if projectile and projectile.type == 20 and projectile.target and creator then
         -- target  => sets target
         -- no target => sets to previous target or nil
         missiles[projectile] = projectile.target or missiles[projectile]
@@ -84,16 +85,17 @@ local function update(deltaTime)
     for missile, target in pairs(missiles) do
         -- assume missile type = 20
         -- check it won't explode this frame
-        if missile and missile.counter > 0 and target then
+        if missile and isElement(missile) and missile.counter > 0 and target and isElement(target) then
             local targetPosition = target.position
-            local targetVelocity = target.velocity     -- m/ (s/50)
+            local targetVelocity = target.velocity    -- m/ (s/50)
             local missilePosition = missile.position
-            local missileVelocity = missile.velocity   -- m/ (s/50)
-            local acceleration = proportionalNavigation(missile, target, 5)
-            missile:setVelocity(missileVelocity + acceleration * deltaTime/20) -- m/(s/50)
+            local missileVelocity = missile.velocity  -- m/ (s/50)
+            local acceleration = proportionalNavigation(missilePosition, missileVelocity, targetPosition, targetVelocity, 5, deltaTime)
+            local newVelocity = missileVelocity + acceleration
+            missile:setVelocity(newVelocity) -- m/(s/50)
             local x, y = getScreenFromWorldPosition(missilePosition)
             if x and y then dxDrawText("Missile", x, y) end
-            missile:setMatrix(missileVelocity)
+            setProjectileMatrix(missile, missileVelocity)
         else
             missiles[missile] = nil -- free
         end
