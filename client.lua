@@ -1,3 +1,21 @@
+local missiles = {}
+
+function createMissile(creator, posX, posY, posZ, force, target, rotX, rotY, rotZ, velX, velY, velZ, model)
+    local projectile = createProjectile(creator, 20, posX, posY, posZ, force, target, rotX, rotY, rotZ, velX, velY velZ, model)
+    
+    if projectile then
+        missiles[projectile] = target                    
+    end
+
+    return projectile
+end
+
+-- Calculate rate of line of sight
+-- rm = Missile position
+-- rt = Target position
+-- vm = Missile velocity
+-- vt = Target velocity
+-- Return dλ/dT
 local function LOSRate(rm, rt, vm, vt)
     local R = {rt[1] - rm[1], rt[2] - rm[2], rt[3] - rm[3]}
     local r = (R[1] ^ 2 + R[2] ^ 2 + R[3] ^ 2) ^ (1 / 2)
@@ -11,25 +29,22 @@ local function LOSRate(rm, rt, vm, vt)
     return LOSRate
 end
 
-local prevVel = false   -- Used to calculate acceleration
-local function proportionalNavigation(missile, target, NAV_CONST)
-    local playerPosition = Vector3(getElementPosition(target))
-    local playerVelocity = Vector3(getElementVelocity(target))
-    if not prevVel then
-        prevVel = playerVelocity
-    end
-    local playerAccel = playerVelocity - prevVel
-    local missilePosition = Vector3(getElementPosition(missile))
-    local missileVelocity = Vector3(getElementVelocity(missile))
-    -- local maxSpeed = 1 -- m/s
-    -- missileVelocity = missileVelocity:getNormalized() * math.min(maxSpeed, missileVelocity:getLength())
+-- Calculate the acceleration needed to hit the target 
+local function proportionalNavigation(missilePosition, missileVelocity, playerPosition, playerVelocity, NAV_CONST)
+    -- Get the parameters for calculating LOS rate between missile and target
     local closingVelocity = missileVelocity - playerVelocity
     local x, y, z = missilePosition:getX(), missilePosition:getY(), missilePosition:getZ()
     local px, py, pz = playerPosition:getX(), playerPosition:getY(), playerPosition:getZ()
     local vx, vy, vz = missileVelocity:getX(), missileVelocity:getY(), missileVelocity:getZ()
     local pvx, pvy, pvz = playerVelocity:getX(), playerVelocity:getY(), playerVelocity:getZ()
-    --iprint("missile, target", missileVelocity:getLength(), playerVelocity:getLength())
-    local LOSRate = LOSRate({x, y, z}, {px, py, pz}, {vx, vy, vz}, {pvx, pvy, pvz})
+
+    local LOSRate = LOSRate({x, y, z}, {px, py, pz}, {vx, vy, vz}, {pvx, pvy, pvz}) * deltaTime/20  -- i.e, 1000/50 = 20
+    
+    -- Command acceleration = N * Vc * dλ/dT
+    -- where N  = Navigational constant
+    --       Vc = Closing velocity
+    --       λ  = Line of sight
+    --       T  = Time in 1/50 seconds
     return NAV_CONST * closingVelocity:getLength() * Vector3(unpack(LOSRate))
 end
 
@@ -49,19 +64,18 @@ local function setProjectileMatrix(p, forward)
     return true
 end
 
-local missiles = {}
-
-function createMissile(creator, target, x, y, z)
-    local p = createProjectile(creator, 20, x, y, z)
-    missiles[creator] = p
-end
-
 local function update(deltaTime)
-    for target, missile in pairs(missiles) do
-        if target and missile and isElement(missile) then
+    for missile, target in pairs(missiles) do
+        if missile and isElement(missile) and target and isElement(target) and missile.counter > 0 then
+            local playerPosition = target.position
+            local playerVelocity = target.velocity     -- m/ (s/50)
+            local missilePosition = missile.position
+            local missileVelocity = missile.velocity   -- m/ (s/50)
             local acceleration = proportionalNavigation(missile, target, 5)
-            setElementVelocity(missile, missileVelocity + acceleration)
+            setElementVelocity(missile, missileVelocity + acceleration * deltaTime/20) -- m/(s/50)
             setProjectileMatrix(missile, missileVelocity)
+        else
+            missiles[missile] = nil -- free
         end
     end
 end
