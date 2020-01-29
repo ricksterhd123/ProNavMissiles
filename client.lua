@@ -53,7 +53,7 @@ local missiles = {}
 
 function createMissile(creator, target, x, y, z)
     local p = createProjectile(creator, 20, x, y, z)
-    missiles[element] = p
+    missiles[creator] = p
 end
 
 local function update(deltaTime)
