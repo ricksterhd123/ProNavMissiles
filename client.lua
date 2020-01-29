@@ -31,7 +31,6 @@ end
 -- Calculates the acceleration needed to hit the target, i.e. command acceleration
 local function proportionalNavigation(missilePosition, missileVelocity, targetPosition, targetVelocity, NAV_CONST)
     -- Get the parameters for calculating LOS rate between missile and target
-    -- TODO: remove Vector3 where possible
     local closingVelocity = missileVelocity - targetVelocity
     local x, y, z = missilePosition.x, missilePosition.y, missilePosition.z
     local px, py, pz = targetPosition.x, targetPosition.y, targetPosition.z
